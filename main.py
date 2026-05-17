@@ -128,10 +128,10 @@ class Plugin808(Star):
                 "该工具支持独立控制两个通道的强度（0-100），灵活组合使用。"
             )
             
-                hardware_prompt += (
-                    "\n\n[重要事件] 用户刚刚主动连接了体感设备！"
-                    "这意味着用户邀请你控制她的设备。请在回复中自然地提及这件事。"
-                )
+            hardware_prompt += (
+                "\n\n[重要事件] 用户刚刚主动连接了体感设备！"
+                "这意味着用户邀请你控制她的设备。请在回复中自然地提及这件事。"
+            )
                     
             if req.system_prompt:
                 if "[硬件状态]" not in req.system_prompt:
@@ -169,15 +169,11 @@ class Plugin808(Star):
             self.duration = max(0.0, float(duration))
             self.start_time = now
             
-            # 取消之前可能挂起的任务
-            if self._wss_ramp_task and not self._wss_ramp_task.done():
-                self._wss_ramp_task.cancel()
-                    if self._stop_task and not self._stop_task.done():
+            # 取消之前可能挂起的停止任务
+            if self._stop_task and not self._stop_task.done():
                 self._stop_task.cancel()
                 self._stop_task = None
             
-
-                    
             if self.duration > 0:
                 msg = f"控制指令已下发：通道A从 {self.head_from} 渐变至 {self.head_to}，通道B从 {self.tail_from} 渐变至 {self.tail_to}，持续 {self.duration} 秒。"
             else:
