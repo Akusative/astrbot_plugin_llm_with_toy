@@ -39,6 +39,7 @@ class Plugin808(Star):
         self._origin_loaded = False
                 
         self.bridge_connected = False
+        self._hardware_notified = False
         
         # 从配置读取端口，默认 6013
         self._pull_server_port = self.config.get("pull_server_port", 6013)
@@ -84,6 +85,7 @@ class Plugin808(Star):
 
     async def _handle_notify(self, request):
         self.bridge_connected = True
+        self._hardware_notified = False
         
         # 主动推送给 QQ/微信（使用持久化的 last_msg_origin）
         await self._ensure_origin_loaded()
@@ -127,10 +129,12 @@ class Plugin808(Star):
                 "该工具支持独立控制两个通道的强度（0-100），灵活组合使用。"
             )
             
-            hardware_prompt += (
-                "\n\n[重要事件] 用户刚刚主动连接了体感设备！"
-                "这意味着用户邀请你控制她的设备。请在回复中自然地提及这件事。"
-            )
+            if not self._hardware_notified:
+                hardware_prompt += (
+                    "\n\n[重要事件] 用户刚刚主动连接了体感设备！"
+                    "这意味着用户邀请你控制她的设备。请在回复中自然地提及这件事。"
+                )
+                self._hardware_notified = True
                     
             if req.system_prompt:
                 if "[硬件状态]" not in req.system_prompt:
