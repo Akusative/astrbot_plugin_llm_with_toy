@@ -1,0 +1,6 @@
+name: astrbot_plugin_llm_with_toy
+display_name: LLM with Toy
+desc: AI自动控制体感反馈设备。
+version: v2.0.2
+author: 沈菀
+repo: ""
