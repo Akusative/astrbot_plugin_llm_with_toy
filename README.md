@@ -10,7 +10,7 @@
 
 ```
 云端 AstrBot（插件 HTTP 服务）
-        ↑ 轮询（每 0.2 秒）
+        ↑ 轮询（每秒）
 本地电脑 Bridge 脚本（Python）
         ↓ 蓝牙 BLE
     体感反馈设备
@@ -35,7 +35,7 @@
 
 ### 1. 安装 AstrBot 插件（云端）
 
-将 `llm_with_toy_Bridge版_仅桥接` 文件夹重命名为 `astrbot_plugin_llm_with_toy`，放入 AstrBot 的 `data/plugins/` 目录下，重启 AstrBot。
+将仓库克隆或下载后，将 `astrbot_plugin_llm_with_toy` 文件夹放入 AstrBot 的 `data/plugins/` 目录下，重启 AstrBot。
 
 启动成功后，日志中会显示：
 ```
@@ -48,20 +48,43 @@
 
 **注意**：请确保云服务器的防火墙已放行该端口。
 
-### 3. 运行本地 Bridge 脚本
+### 3. 配置本地 Bridge 脚本
 
-在你自己的电脑上：
+用文本编辑器打开 `toy_bridge.py`，修改顶部 **【用户配置区】** 中的参数：
+
+```python
+# 设备蓝牙 MAC 地址（必填）
+MAC_ADDRESS = "AA:BB:CC:DD:EE:FF"
+
+# BLE 请求特征 UUID（查阅设备文档获取）
+UUID_REQ = "00009001-0000-1000-8000-00805f9b34fb"
+
+# BLE 命令特征 UUID（查阅设备文档获取）
+UUID_CMD = "00009002-0000-1000-8000-00805f9b34fb"
+```
+
+> 💡 **如何获取这些参数？** 使用手机上的 BLE 扫描工具（如 [nRF Connect](https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp)），扫描你的设备即可看到 MAC 地址和 UUID。
+
+### 4. 运行本地 Bridge 脚本
+
+**方式一：双击 bat 启动（推荐）**
+
+双击 `启动808桥接.bat`，脚本会自动安装依赖并启动。
+
+**方式二：手动运行**
 
 ```bash
 # 安装依赖
 pip install bleak aiohttp
 
 # 运行 Bridge
-python bridge_808.py
+python toy_bridge.py
 ```
 
+首次运行时，脚本会要求你输入云端 AstrBot 的服务器 IP 地址，输入后会自动保存到 `bridge_config.json`，下次启动直接按回车即可。
+
 Bridge 脚本启动后会自动：
-1. 扫描并连接附近的蓝牙体感设备
+1. 连接蓝牙设备并发送握手序列
 2. 向云端发送连接通知
 3. 开始轮询云端指令并实时转发给设备
 
@@ -77,15 +100,22 @@ Bridge 脚本启动后会自动：
 
 打开 Windows 设置 → 蓝牙和其他设备 → 确认蓝牙已打开。
 
-### 第三步：运行 Bridge 脚本
+### 第三步：获取设备信息
 
-Bridge 脚本会自动扫描附近的 BLE 设备并尝试连接，无需手动在系统中配对。脚本会在控制台输出扫描到的设备列表和连接状态。
+使用手机上的 nRF Connect（或其他 BLE 扫描工具）：
+1. 扫描并找到你的设备，记录 **MAC 地址**
+2. 连接设备，查看 Services 列表，记录 **Service UUID** 和 **Characteristic UUID**
+3. 将这些信息填入 `toy_bridge.py` 顶部的配置区
+
+### 第四步：运行 Bridge 脚本
+
+双击 `启动808桥接.bat` 或手动运行 `python toy_bridge.py`，脚本会自动连接设备。
 
 ### 常见问题
 
-- **扫描不到设备**：确认设备已开机且指示灯在闪烁；尝试将设备靠近电脑；重启蓝牙后重试。
+- **连接失败**：确认设备已开机且指示灯在闪烁；确认 MAC 地址填写正确；尝试将设备靠近电脑。
 - **连接后断开**：检查设备电量是否充足；确认电脑与设备之间没有较大障碍物。
-- **多个设备**：如果附近有多个同类设备，Bridge 会连接信号最强的那个。可在脚本中指定设备 MAC 地址进行精确连接。
+- **UUID 不对**：不同品牌设备的 UUID 完全不同，请务必通过 BLE 扫描工具实际查看你的设备 UUID。
 
 ---
 
@@ -107,14 +137,28 @@ AI 会通过内置的 `set_808_intensity` 工具自动执行控制。
 
 ```
 astrbot_plugin_llm_with_toy/
-├── main.py              # 插件主文件（云端）
-├── bridge_808.py        # 本地 Bridge 脚本（在你的电脑上运行）
+├── main.py              # 插件主文件（云端 AstrBot）
+├── toy_bridge.py        # 本地 Bridge 脚本（在你的电脑上运行）
+├── bridge_config.json   # 服务器地址配置（自动生成）
+├── 启动808桥接.bat       # 一键启动脚本（Windows）
 ├── metadata.yaml        # 插件元数据
 ├── requirements.txt     # 插件依赖
 ├── _conf_schema.json    # 配置项定义
 ├── __init__.py          # 模块初始化
+├── 使用教程.txt          # 纯文本版教程
 └── README.md            # 本文件
 ```
+
+---
+
+## 自定义适配你的设备
+
+如果你的设备与默认配置不兼容，需要修改 `toy_bridge.py` 中的以下部分：
+
+1. **MAC 地址和 UUID**：在【用户配置区】顶部修改
+2. **握手序列**：修改 `INIT_SEQUENCE`，如果你的设备不需要握手，设为空列表 `[]`
+3. **强度映射**：修改 `get_mode_from_intensity()` 函数，适配你的设备的强度档位
+4. **指令格式**：修改 `build_command()` 函数，适配你的设备的蓝牙协议
 
 ---
 
